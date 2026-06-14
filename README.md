@@ -54,12 +54,16 @@ prototype baseline.
 - Headphone `-` and `+` adjust Mixxx `[Master],headGain`.
 - The script has an explicit LED output layer for VINYL, transport, PFL, and
   loop indicators.
+- The inherited XML still contains older static `0x90` output entries. They
+  remain baseline debt and are not the authoritative LED-send contract.
 - SYNC still uses the baseline momentary `beatsync` control.
 - Hot Cue, Loop, Effect, and Sample retain the baseline mappings described in
   the user guide.
 
 Only the VINYL LED frame is currently claimed as physically validated. Other
 implemented LED and transport behaviors remain pending the hardware gate.
+The explicit script-side LED layer should be validated before the inherited
+XML output block is removed or rewritten.
 
 ## Next-version spec
 

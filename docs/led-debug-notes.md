@@ -92,6 +92,9 @@ Candidate notes used by the SeDa prototype:
 
 - New explicit LED sends should use `0x91`, `0x7F`, and `0x00`.
 - Do not infer working LED output only from XML declarations or old maps.
+- The published baseline still contains inherited static XML outputs using
+  older statuses; treat those entries as cleanup debt, not the validated send
+  contract.
 - Validate each note physically before marking it as confirmed.
 - Keep startup-warning investigation separate from input mapping and from raw
   hardware-frame validation.

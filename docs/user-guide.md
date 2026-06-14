@@ -104,6 +104,10 @@ The VINYL LED uses note `0x35` and is physically validated with
 [led-debug-notes.md](led-debug-notes.md) and remain awaiting physical gate
 approval.
 
+The current XML also retains inherited static output entries using older
+statuses. The explicit script-side LED layer is the intended contract; the XML
+output block remains cleanup debt until the physical gate is complete.
+
 ## Known limits
 
 - The public baseline still maps SYNC to momentary `beatsync`.
@@ -113,3 +117,5 @@ approval.
 - Effect redesign is outside the immediate scope.
 - Transport, PFL, loop, and non-VINYL LED behavior still require physical
   validation.
+- Inherited static XML output entries still need reconciliation with the
+  explicit script-side LED layer.
