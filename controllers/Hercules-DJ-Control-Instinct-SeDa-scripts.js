@@ -2,6 +2,18 @@ function HCInstinctSeDa() {}
 
 HCInstinctSeDa.scratching = [false, false];
 HCInstinctSeDa.scratchModeEnabled = false;
+HCInstinctSeDa.captureActive = {
+    "[Channel1]": false,
+    "[Channel2]": false,
+};
+HCInstinctSeDa.captureSlot = {
+    "[Channel1]": 0,
+    "[Channel2]": 0,
+};
+HCInstinctSeDa.samplerSlots = {
+    "[Channel1]": [1, 2, 3, 4],
+    "[Channel2]": [5, 6, 7, 8],
+};
 HCInstinctSeDa.pitchSwitches = {
     A: [0, 0],
     B: [0, 0],
@@ -25,6 +37,18 @@ HCInstinctSeDa.ledNotes = {
         "[Channel1]": 0x18,
         "[Channel2]": 0x32,
     },
+    sync: {
+        "[Channel1]": 0x17,
+        "[Channel2]": 0x31,
+    },
+    hotCue: {
+        "[Channel1]": [0x0D, 0x0E, 0x0F, 0x10],
+        "[Channel2]": [0x27, 0x28, 0x29, 0x2A],
+    },
+    sample: {
+        "[Channel1]": [0x05, 0x06, 0x07, 0x08],
+        "[Channel2]": [0x1F, 0x20, 0x21, 0x22],
+    },
     loop: {
         "[Channel1]": [0x09, 0x0A, 0x0B, 0x0C],
         "[Channel2]": [0x23, 0x24, 0x25, 0x26],
@@ -34,6 +58,9 @@ HCInstinctSeDa.ledConnections = [];
 
 HCInstinctSeDa.init = function(id) {
     HCInstinctSeDa.id = id;
+    if (engine.getValue("[App]", "num_samplers") < 8) {
+        engine.setValue("[App]", "num_samplers", 8);
+    }
     HCInstinctSeDa.connectLeds();
     engine.beginTimer(500, HCInstinctSeDa.syncLeds, true);
     print("***** Hercules DJ Instinct Control id: \"" + id + "\" initialized.");
@@ -60,6 +87,13 @@ HCInstinctSeDa.allLedOff = function() {
         HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.play[group], false);
         HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.cue[group], false);
         HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.pfl[group], false);
+        HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.sync[group], false);
+        for (var h = 0; h < HCInstinctSeDa.ledNotes.hotCue[group].length; h++) {
+            HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.hotCue[group][h], false);
+        }
+        for (var s = 0; s < HCInstinctSeDa.ledNotes.sample[group].length; s++) {
+            HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.sample[group][s], false);
+        }
         for (var j = 0; j < HCInstinctSeDa.ledNotes.loop[group].length; j++) {
             HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.loop[group][j], false);
         }
@@ -68,6 +102,8 @@ HCInstinctSeDa.allLedOff = function() {
 
 HCInstinctSeDa.updateScratchModeLed = function() {
     HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.scratch, HCInstinctSeDa.scratchModeEnabled);
+    HCInstinctSeDa.updateHotCueLeds("[Channel1]");
+    HCInstinctSeDa.updateHotCueLeds("[Channel2]");
 };
 
 HCInstinctSeDa.updateDeckLeds = function(group) {
@@ -76,11 +112,40 @@ HCInstinctSeDa.updateDeckLeds = function(group) {
     HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.play[group], engine.getValue(group, "play") > 0);
     HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.cue[group], engine.getValue(group, "cue_indicator") > 0);
     HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.pfl[group], engine.getValue(group, "pfl") > 0);
+    HCInstinctSeDa.sendLed(HCInstinctSeDa.ledNotes.sync[group], engine.getValue(group, "sync_enabled") > 0);
     HCInstinctSeDa.sendLed(loopNotes[0], engine.getValue(group, "loop_start_position") >= 0);
     HCInstinctSeDa.sendLed(loopNotes[1], engine.getValue(group, "loop_end_position") >= 0);
     HCInstinctSeDa.sendLed(loopNotes[2], loopActive);
-    // LOOP 4 runs loop_halve, which has no persistent state; show when a loop is active.
+    // LOOP 3/4 change length and have no persistent state; show when a loop is active.
     HCInstinctSeDa.sendLed(loopNotes[3], loopActive);
+    HCInstinctSeDa.updateHotCueLeds(group);
+    HCInstinctSeDa.updateSampleLeds(group);
+};
+
+HCInstinctSeDa.updateHotCueLeds = function(group) {
+    var notes = HCInstinctSeDa.ledNotes.hotCue[group];
+    var enabled = [];
+    for (var i = 1; i <= 4; i++) {
+        enabled.push(engine.getValue(group, "hotcue_" + i + "_enabled") > 0);
+    }
+    var shown = HCInstinctSeDa.scratchModeEnabled ?
+        [enabled[2], enabled[3], enabled[2], enabled[3]] : enabled;
+    for (var j = 0; j < notes.length; j++) {
+        HCInstinctSeDa.sendLed(notes[j], shown[j]);
+    }
+};
+
+HCInstinctSeDa.updateSampleLeds = function(group) {
+    var notes = HCInstinctSeDa.ledNotes.sample[group];
+    var slots = HCInstinctSeDa.samplerSlots[group];
+    var selected = HCInstinctSeDa.captureSlot[group];
+    for (var i = 0; i < notes.length; i++) {
+        var enabled = engine.getValue("[Sampler" + slots[i] + "]", "track_loaded") > 0;
+        if (HCInstinctSeDa.captureActive[group]) {
+            enabled = selected === 0 || selected === i + 1;
+        }
+        HCInstinctSeDa.sendLed(notes[i], enabled);
+    }
 };
 
 HCInstinctSeDa.syncLeds = function() {
@@ -91,7 +156,11 @@ HCInstinctSeDa.syncLeds = function() {
 
 HCInstinctSeDa.connectLeds = function() {
     var groups = ["[Channel1]", "[Channel2]"];
-    var controls = ["play", "cue_indicator", "pfl", "loop_start_position", "loop_enabled", "loop_end_position"];
+    var controls = [
+        "play", "cue_indicator", "pfl", "sync_enabled", "loop_start_position",
+        "loop_enabled", "loop_end_position", "hotcue_1_enabled",
+        "hotcue_2_enabled", "hotcue_3_enabled", "hotcue_4_enabled",
+    ];
     for (var i = 0; i < groups.length; i++) {
         (function(group) {
             for (var j = 0; j < controls.length; j++) {
@@ -101,8 +170,23 @@ HCInstinctSeDa.connectLeds = function() {
                     })
                 );
             }
+            var slots = HCInstinctSeDa.samplerSlots[group];
+            for (var k = 0; k < slots.length; k++) {
+                (function(samplerGroup) {
+                    HCInstinctSeDa.ledConnections.push(
+                        engine.makeConnection(samplerGroup, "track_loaded", function() {
+                            HCInstinctSeDa.updateSampleLeds(group);
+                        })
+                    );
+                })("[Sampler" + slots[k] + "]");
+            }
         })(groups[i]);
     }
+};
+
+HCInstinctSeDa.triggerControl = function(group, control) {
+    engine.setValue(group, control, 1);
+    engine.setValue(group, control, 0);
 };
 
 HCInstinctSeDa.playButton = function(channel, control, value, status, group) {
@@ -120,8 +204,140 @@ HCInstinctSeDa.vinylButtonHandler = function(channel, control, value) {
     if (!HCInstinctSeDa.scratchModeEnabled) {
         HCInstinctSeDa.disableScratch(0);
         HCInstinctSeDa.disableScratch(1);
+        HCInstinctSeDa.cancelCapture("[Channel1]");
+        HCInstinctSeDa.cancelCapture("[Channel2]");
     }
     HCInstinctSeDa.updateScratchModeLed();
+};
+
+HCInstinctSeDa.syncButton = function(channel, control, value, status, group) {
+    if (value !== 0x7F) {
+        return;
+    }
+    engine.setValue(group, "sync_enabled", engine.getValue(group, "sync_enabled") ? 0 : 1);
+};
+
+HCInstinctSeDa.hotCueButton = function(channel, control, value, status, group) {
+    if (value !== 0x7F) {
+        return;
+    }
+    var base = group === "[Channel1]" ? 0x0D : 0x27;
+    var button = control - base + 1;
+    if (HCInstinctSeDa.selectCaptureSlot(group, button)) {
+        return;
+    }
+    var hotCue = button;
+    var action = "activate";
+    if (HCInstinctSeDa.scratchModeEnabled) {
+        hotCue = button <= 2 ? button + 2 : button;
+        action = button <= 2 ? "activate" : "clear";
+    }
+    HCInstinctSeDa.triggerControl(group, "hotcue_" + hotCue + "_" + action);
+};
+
+HCInstinctSeDa.loopButton = function(channel, control, value, status, group) {
+    if (value !== 0x7F) {
+        return;
+    }
+    var base = group === "[Channel1]" ? 0x09 : 0x23;
+    var button = control - base + 1;
+    if (HCInstinctSeDa.selectCaptureSlot(group, button)) {
+        return;
+    }
+    if (button === 1) {
+        HCInstinctSeDa.triggerControl(group, "loop_in");
+    } else if (button === 2) {
+        var hasLoop = engine.getValue(group, "loop_start_position") >= 0 &&
+            engine.getValue(group, "loop_end_position") >= 0;
+        HCInstinctSeDa.triggerControl(group, hasLoop ? "reloop_exit" : "loop_out");
+    } else if (button === 3) {
+        HCInstinctSeDa.triggerControl(group, "loop_halve");
+    } else if (button === 4) {
+        HCInstinctSeDa.triggerControl(group, "loop_double");
+    }
+};
+
+HCInstinctSeDa.sampleButton = function(channel, control, value, status, group) {
+    if (value !== 0x7F) {
+        return;
+    }
+    var base = group === "[Channel1]" ? 0x05 : 0x1F;
+    var button = control - base + 1;
+    if (HCInstinctSeDa.selectCaptureSlot(group, button)) {
+        return;
+    }
+    var sampler = HCInstinctSeDa.samplerSlots[group][button - 1];
+    if (engine.getValue("[Sampler" + sampler + "]", "track_loaded") > 0) {
+        HCInstinctSeDa.triggerControl("[Sampler" + sampler + "]", "cue_gotoandplay");
+    }
+};
+
+HCInstinctSeDa.effectButton = function(channel, control, value, status, group) {
+    if (value !== 0x7F) {
+        return;
+    }
+    var base = group === "[Channel1]" ? 0x01 : 0x1B;
+    var button = control - base + 1;
+    if (HCInstinctSeDa.selectCaptureSlot(group, button)) {
+        return;
+    }
+    var effectGroup = "[EffectRack1_EffectUnit" + button + "]";
+    var effectControl = "group_" + group + "_enable";
+    engine.setValue(effectGroup, effectControl, engine.getValue(effectGroup, effectControl) ? 0 : 1);
+};
+
+HCInstinctSeDa.selectCaptureSlot = function(group, button) {
+    if (!HCInstinctSeDa.captureActive[group]) {
+        return false;
+    }
+    HCInstinctSeDa.captureSlot[group] = button;
+    HCInstinctSeDa.updateSampleLeds(group);
+    return true;
+};
+
+HCInstinctSeDa.startCapture = function(group) {
+    HCInstinctSeDa.captureActive[group] = true;
+    HCInstinctSeDa.captureSlot[group] = 0;
+    HCInstinctSeDa.updateSampleLeds(group);
+};
+
+HCInstinctSeDa.cancelCapture = function(group) {
+    HCInstinctSeDa.captureActive[group] = false;
+    HCInstinctSeDa.captureSlot[group] = 0;
+    HCInstinctSeDa.updateSampleLeds(group);
+};
+
+HCInstinctSeDa.commitCapture = function(group) {
+    var selected = HCInstinctSeDa.captureSlot[group];
+    if (!HCInstinctSeDa.captureActive[group] || selected === 0) {
+        return;
+    }
+    var deck = group === "[Channel1]" ? 1 : 2;
+    var sampler = HCInstinctSeDa.samplerSlots[group][selected - 1];
+    engine.setValue("[Sampler" + sampler + "]", "LoadTrackFromDeck", deck);
+    HCInstinctSeDa.cancelCapture(group);
+};
+
+HCInstinctSeDa.seekButton = function(controlName, value, group) {
+    if (HCInstinctSeDa.scratchModeEnabled && value === 0x7F) {
+        if (controlName === "back") {
+            HCInstinctSeDa.startCapture(group);
+        } else {
+            HCInstinctSeDa.commitCapture(group);
+        }
+        return;
+    }
+    if (!HCInstinctSeDa.scratchModeEnabled) {
+        engine.setValue(group, controlName, value === 0x7F ? 1 : 0);
+    }
+};
+
+HCInstinctSeDa.backButton = function(channel, control, value, status, group) {
+    HCInstinctSeDa.seekButton("back", value, group);
+};
+
+HCInstinctSeDa.forwardButton = function(channel, control, value, status, group) {
+    HCInstinctSeDa.seekButton("fwd", value, group);
 };
 
 HCInstinctSeDa.enableScratch = function(deckIndex) {
