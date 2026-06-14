@@ -1,17 +1,36 @@
-copy .xml and .js file to the controller directory of mixxx.
-Reload defaults of the controller in options menue.
+# Install the SeDa mapping
 
+Copy both files from `controllers/` into your Mixxx user controller directory:
 
-+ Windows:
-  - C:\Program Files\Mixxx\controllers
-+ Linux:
-  - /usr/share/mixxx/controllers in ubuntu
-  - or /usr/local/share/mixxx/controllers (other linux os)
+- Linux: `~/.mixxx/controllers/`
+- Windows: `%LOCALAPPDATA%\Mixxx\controllers\`
+- macOS: `~/Library/Containers/org.mixxx.mixxx/Data/Library/Application Support/Mixxx/controllers/`
 
-+ OS X:
-  - Assuming Mixxx has been installed to your Applications folder:
-  - 1. Go to Applications/
-  - 2. Control-click Mixxx, select "Show Package Contents"
-  - 3. Copy the above files to the folder Applications/Mixxx.app/Content/Resources/controllers/
-  
-  
+Restart Mixxx, open `Preferences -> Controllers`, select the Hercules
+DJControl Instinct, choose `Hercules DJ Control Instinct SeDa`, enable the
+device, and apply the settings.
+
+Using the user controller directory keeps the mapping separate from Mixxx
+package files and makes rollback straightforward.
+
+# Current audio setup: USB speakers plus computer headphone jack
+
+For the current practice setup, the Hercules is used as a controller while
+audio remains on the computer:
+
+1. Connect the USB speakers, headphones to the computer P2/headphone jack, and
+   the Hercules controller.
+2. Open `Preferences -> Sound Hardware -> Output`.
+3. Set `Master` to the USB-speaker audio interface, `Channels 1-2`.
+4. Set `Headphones` to the computer's built-in audio interface,
+   `Channels 1-2`.
+5. Apply the settings.
+
+Use each deck's PFL/headphone button to send that deck to the headphones.
+Mixxx's Pre/Main or Head Mix control selects how much PFL and Master signal is
+heard in the headphones.
+
+Do not select Hercules `Channels 1-2` for Master and `Channels 3-4` for
+Headphones unless the speakers and headphones are actually connected to the
+controller's own audio outputs. That is a valid future setup, but it is not
+the current USB-speakers plus computer-P2 setup.
