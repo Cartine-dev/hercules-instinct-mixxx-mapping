@@ -42,7 +42,7 @@ Hercules audio outputs.
 
 | Mode | Buttons 1-4 |
 | --- | --- |
-| Hot Cue, VINYL off | `1-4` activate hotcues `1-4` |
+| Hot Cue, VINYL off | `1-2` activate hotcues `1-2`; `3-4` clear hotcues `1-2` |
 | Hot Cue, VINYL on | `1-2` activate hotcues `3-4`; `3-4` clear hotcues `3-4` |
 | Loop | `1=Loop In`, `2=Loop Out/Exit`, `3=Halve`, `4=Double` |
 | Sample | `1-4` play the four sampler slots assigned to that deck |
@@ -57,22 +57,8 @@ inherited historical behavior.
   deck, so Deck A and Deck B actions remain independent.
 - Effect behavior remains inherited and outside the immediate redesign.
 - VINYL is a global scratch toggle and secondary modifier.
-- While capture is active for a deck, any of its action buttons `1-4` selects
-  the target sampler slot regardless of the currently selected physical mode.
-
-## Sample capture flow
-
-The implemented operator flow is:
-
-1. Press `VINYL + Back` for the target deck.
-2. The four candidate sample-slot LEDs illuminate.
-3. Press any action button `1-4` on that deck to select the target slot.
-4. The selected slot remains illuminated.
-5. Press `VINYL + Fast Forward` to finalize/commit the capture.
-
-The commit uses Mixxx `[SamplerN],LoadTrackFromDeck`, which loads the complete
-track currently on the deck into the selected sampler. It does not record only
-a short segment. The full flow still needs physical validation.
+- Back and Fast Forward remain the original deck `back` and `fwd` controls
+  with normal press/release handling, regardless of VINYL state.
 
 ## LED semantics
 
@@ -89,17 +75,20 @@ The VINYL LED uses note `0x35` and is physically validated with
 [led-debug-notes.md](led-debug-notes.md) and remain awaiting physical gate
 approval.
 
+Hot Cue LEDs follow the active Hot Cue pair:
+
+- VINYL off: buttons `1/3` mirror hotcue `1`, and `2/4` mirror hotcue `2`.
+- VINYL on: buttons `1/3` mirror hotcue `3`, and `2/4` mirror hotcue `4`.
+
 The inherited static XML output block was removed. The explicit script-side
 LED layer is now the single LED output path.
 
 ## Known limits
 
-- The newly implemented SYNC, mode, modifier, capture, and LED behavior still
+- The newly implemented SYNC, mode, modifier, and LED behavior still
   needs physical validation.
-- Deck-to-sampler capture loads the complete deck track; short-segment
-  recording is not implemented.
 - The script cannot force the Hercules hardware's physical mode selector or
-  mode indicator. During capture, all action banks accept slot selection.
+  mode indicator.
 - Effect redesign is outside the immediate scope.
 - Transport, PFL, loop, and non-VINYL LED behavior still require physical
   validation.

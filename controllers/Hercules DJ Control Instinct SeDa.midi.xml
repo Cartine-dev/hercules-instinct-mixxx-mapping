@@ -516,20 +516,20 @@
         <status>0x91</status>
         <midino>0x13</midino>
         <group>[Channel1]</group>
-        <key>HCInstinctSeDa.backButton</key>
-        <description>Deck A Back / VINYL capture start</description>
+        <key>back</key>
+        <description>Deck A Back</description>
         <options>
-          <script-binding/>
+          <normal/>
         </options>
       </control>
       <control>
         <status>0x91</status>
         <midino>0x14</midino>
         <group>[Channel1]</group>
-        <key>HCInstinctSeDa.forwardButton</key>
-        <description>Deck A Forward / VINYL capture commit</description>
+        <key>fwd</key>
+        <description>Deck A Forward</description>
         <options>
-          <script-binding/>
+          <normal/>
         </options>
       </control>
       <control>
@@ -706,20 +706,20 @@
         <status>0x91</status>
         <midino>0x2d</midino>
         <group>[Channel2]</group>
-        <key>HCInstinctSeDa.backButton</key>
-        <description>Deck B Back / VINYL capture start</description>
+        <key>back</key>
+        <description>Deck B Back</description>
         <options>
-          <script-binding/>
+          <normal/>
         </options>
       </control>
       <control>
         <status>0x91</status>
         <midino>0x2e</midino>
         <group>[Channel2]</group>
-        <key>HCInstinctSeDa.forwardButton</key>
-        <description>Deck B Forward / VINYL capture commit</description>
+        <key>fwd</key>
+        <description>Deck B Forward</description>
         <options>
-          <script-binding/>
+          <normal/>
         </options>
       </control>
       <control>

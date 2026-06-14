@@ -60,8 +60,8 @@ prototype baseline.
 - VINYL remains the global scratch/jog toggle and also acts as the secondary
   modifier.
 - Hot Cue, Loop, and Sample use deck-specific action banks.
-- The sample capture flow loads the current deck track into the selected
-  sampler slot.
+- Back and Fast Forward use their original deck `back`/`fwd` controls
+  regardless of VINYL state.
 
 Only the VINYL LED frame is currently claimed as physically validated. Other
 implemented LED and transport behaviors remain pending the hardware gate.
@@ -72,19 +72,17 @@ implemented LED and transport behaviors remain pending the hardware gate.
 - VINYL remains the global scratch toggle and acts as a secondary modifier.
 - Hot Cue, Loop, and Sample action banks operate independently per deck.
 - Effect behavior remains inherited and outside the immediate redesign.
-- Hot Cue without VINYL maps buttons `1-4` to hotcues `1-4`.
+- Hot Cue without VINYL maps buttons `1-2` to activate hotcues `1-2`, and
+  buttons `3-4` clear hotcues `1-2`.
 - Hot Cue with VINYL maps buttons `1-2` to hotcues `3-4`, and buttons `3-4`
   clear hotcues `3-4`.
+- With VINYL off, the four Hot Cue LEDs mirror hotcues `1-2` as `1/3` and
+  `2/4`. With VINYL on, they mirror hotcues `3-4` as `1/3` and `2/4`.
 - Loop follows the hardware manual model:
   `1=Loop In`, `2=Loop Out/Exit`, `3=Halve`, `4=Double`.
 - Sample buttons play the four slots assigned to each deck.
-- `VINYL + Back` starts capture-slot selection for that deck.
-- Any action button `1-4` selects a slot while capture is active.
-- `VINYL + Fast Forward` loads the current deck track into the selected
-  sampler slot.
-
-The current Mixxx control loads the full track from the deck. Recording only a
-short audio segment remains planned and is not implemented.
+- Back and Fast Forward keep their original deck-search behavior with normal
+  press/release handling.
 
 ## Installation
 
