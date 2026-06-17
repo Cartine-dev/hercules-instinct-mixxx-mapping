@@ -3,8 +3,8 @@
 ## Status language
 
 - **Current baseline** describes the published controller files.
-- **Planned next** describes the next mapping contract and is not implemented
-  unless explicitly stated.
+- **Implemented, awaiting validation** describes behavior present in the
+  controller files that still needs the physical gate.
 - Only behavior marked **physically validated** has passed the real-hardware
   gate.
 
@@ -30,7 +30,7 @@ Hercules audio outputs.
 | PLAY | Press-only play/pause toggle per deck |
 | CUE | Mixxx `cue_default` per deck |
 | PFL | Toggles private headphone monitoring per deck |
-| SYNC | Momentary `beatsync`; persistent sync is planned next |
+| SYNC | Toggles persistent `sync_enabled`; LED follows deck state |
 | Pitch buttons | Temporary pitch bend; pressing both resets rate |
 | Jog | Jog normally; scratch on touch only when VINYL is active |
 | VINYL | Global scratch/jog toggle; its LED shows the toggle state |
@@ -38,56 +38,28 @@ Hercules audio outputs.
 
 ## Action buttons 1-4
 
-### Current baseline
+### Implemented behavior
 
 | Mode | Buttons 1-4 |
 | --- | --- |
-| Hot Cue | `1=Hotcue 1 activate`, `2=Hotcue 2 activate`, `3=Hotcue 1 clear`, `4=Hotcue 2 clear` |
-| Loop | `1=Loop In`, `2=Reloop/Exit`, `3=Loop Out`, `4=Halve` |
-| Sample | Existing sampler playback triggers; behavior remains inherited and should be smoke-tested |
+| Hot Cue, VINYL off | `1-2` activate hotcues `1-2`; `3-4` clear hotcues `1-2` |
+| Hot Cue, VINYL on | `1-2` activate hotcues `3-4`; `3-4` clear hotcues `3-4` |
+| Loop | `1=Loop In`, `2=Loop Out/Exit`, `3=Halve`, `4=Double` |
+| Sample | `1-4` play the four sampler slots assigned to that deck |
 | Effect | Existing inherited effect-unit assignments; no immediate redesign |
 
-### Planned next
-
-| Mode | VINYL off | VINYL on |
-| --- | --- | --- |
-| Hot Cue | `1-4` activate hotcues `1-4` | `1-2` activate hotcues `3-4`; `3-4` clear hotcues `3-4` |
-| Loop | `1=Loop In`, `2=Loop Out/Exit`, `3=Halve`, `4=Double` | No secondary loop actions specified yet |
-| Sample | `1-4` play/select the deck's sample slots | Modifier participates in the planned capture flow |
-
-The planned Hot Cue shift is an intentional expansion of hotcue reach, not
+The Hot Cue shift is an intentional expansion of hotcue reach, not
 inherited historical behavior.
 
 ## Mode rules
 
-### Current baseline
-
-The published mapping retains the existing hardware/mapping behavior. Treat
-all action modes as needing a regression smoke test before live use.
-
-### Planned next
-
-- Hot Cue, Loop, and Sample state are independent per deck. Deck A and Deck B
-  may use different modes at the same time.
-- Effect remains global.
-- VINYL remains a global scratch toggle and becomes a secondary modifier.
-
-## Planned sample capture flow
-
-Playback and LED indication for existing samples are the first supported
-target. Direct capture from a deck into a sampler remains conditional on a
-clean Mixxx control path.
-
-The planned operator flow is:
-
-1. Press `VINYL + Back` for the target deck.
-2. That deck enters Sample mode.
-3. The deck Sample LED and candidate slot LEDs `1-4` illuminate.
-4. Select the target slot.
-5. Press `VINYL + Fast Forward` to finalize/commit the capture.
-
-This flow is specification only until technical feasibility and hardware
-behavior are confirmed.
+- The Hercules emits separate Hot Cue, Loop, and Sample action banks for each
+  deck, so Deck A and Deck B actions remain independent.
+- Effect behavior remains inherited and outside the immediate redesign.
+- VINYL is a global scratch toggle and secondary modifier.
+- Deck A Back/Fast Forward and Deck B Fast Forward retain normal bindings.
+- Deck B Back remains assigned to `0x2d`; if the button emits no MIDI, it
+  requires hardware repair or an intentional remap to another control.
 
 ## LED semantics
 
@@ -104,12 +76,20 @@ The VINYL LED uses note `0x35` and is physically validated with
 [led-debug-notes.md](led-debug-notes.md) and remain awaiting physical gate
 approval.
 
+Hot Cue LEDs follow the active Hot Cue pair:
+
+- VINYL off: buttons `1/3` mirror hotcue `1`, and `2/4` mirror hotcue `2`.
+- VINYL on: buttons `1/3` mirror hotcue `3`, and `2/4` mirror hotcue `4`.
+
+The inherited static XML output block was removed. The explicit script-side
+LED layer is now the single LED output path.
+
 ## Known limits
 
-- The public baseline still maps SYNC to momentary `beatsync`.
-- The planned per-deck mode model is not implemented in the published files.
-- Direct deck-to-sampler capture is not validated in the legacy Mixxx control
-  surface.
+- The newly implemented SYNC, mode, modifier, and LED behavior still
+  needs physical validation.
+- The script cannot force the Hercules hardware's physical mode selector or
+  mode indicator.
 - Effect redesign is outside the immediate scope.
 - Transport, PFL, loop, and non-VINYL LED behavior still require physical
   validation.

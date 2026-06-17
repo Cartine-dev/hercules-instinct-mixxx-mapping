@@ -54,31 +54,38 @@ prototype baseline.
 - Headphone `-` and `+` adjust Mixxx `[Master],headGain`.
 - The script has an explicit LED output layer for VINYL, transport, PFL, and
   loop indicators.
-- SYNC still uses the baseline momentary `beatsync` control.
-- Hot Cue, Loop, Effect, and Sample retain the baseline mappings described in
-  the user guide.
+- The inherited static XML output block was removed so the explicit script-side
+  LED layer is the single output path.
+- SYNC toggles `sync_enabled` and its LED follows the persistent deck state.
+- VINYL remains the global scratch/jog toggle and also acts as the secondary
+  modifier.
+- Hot Cue, Loop, and Sample use deck-specific action banks.
+- Deck A Back/Fast Forward and Deck B Fast Forward use their original controls.
+- Deck B Back remains mapped to `0x2d`, but the tested unit emitted no `0x2d`
+  input during the focused hardware capture.
+- Deck volume runs through one shared handler that reproduces Mixxx's native
+  `-20 dB` to `0 dB` audio-taper law over the captured `0x00-0x7F` span.
 
 Only the VINYL LED frame is currently claimed as physically validated. Other
 implemented LED and transport behaviors remain pending the hardware gate.
 
-## Next-version spec
+## Implemented next iteration, awaiting hardware validation
 
-The next iteration is specified but not implemented in the published
-controller files:
-
-- SYNC becomes a toggle of `sync_enabled`, with a persistent deck-state LED.
-- VINYL remains the global scratch toggle and also acts as a secondary
-  modifier.
-- Hot Cue, Loop, and Sample modes become independent per deck.
-- Effect remains global and outside the immediate redesign.
-- Hot Cue without VINYL maps buttons `1-4` to hotcues `1-4`.
+- SYNC is a toggle of `sync_enabled`, with a persistent deck-state LED.
+- VINYL remains the global scratch toggle and acts as a secondary modifier.
+- Hot Cue, Loop, and Sample action banks operate independently per deck.
+- Effect behavior remains inherited and outside the immediate redesign.
+- Hot Cue without VINYL maps buttons `1-2` to activate hotcues `1-2`, and
+  buttons `3-4` clear hotcues `1-2`.
 - Hot Cue with VINYL maps buttons `1-2` to hotcues `3-4`, and buttons `3-4`
   clear hotcues `3-4`.
+- With VINYL off, the four Hot Cue LEDs mirror hotcues `1-2` as `1/3` and
+  `2/4`. With VINYL on, they mirror hotcues `3-4` as `1/3` and `2/4`.
 - Loop follows the hardware manual model:
   `1=Loop In`, `2=Loop Out/Exit`, `3=Halve`, `4=Double`.
-- Sample playback and slot indication are supported targets.
-- Direct deck-to-sampler capture remains planned until a clean Mixxx control
-  path is technically confirmed.
+- Sample buttons play the four slots assigned to each deck.
+- Back and Fast Forward keep their original deck-search behavior with normal
+  press/release handling.
 
 ## Installation
 
@@ -86,6 +93,14 @@ See [INSTALL](INSTALL). The published files are:
 
 - `controllers/Hercules DJ Control Instinct SeDa.midi.xml`
 - `controllers/Hercules-DJ-Control-Instinct-SeDa-scripts.js`
+
+## Static verification
+
+```bash
+xmllint --noout "controllers/Hercules DJ Control Instinct SeDa.midi.xml"
+node --check controllers/Hercules-DJ-Control-Instinct-SeDa-scripts.js
+node tests/test-seda-next.js
+```
 
 ## History and attribution
 

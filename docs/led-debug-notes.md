@@ -92,6 +92,8 @@ Candidate notes used by the SeDa prototype:
 
 - New explicit LED sends should use `0x91`, `0x7F`, and `0x00`.
 - Do not infer working LED output only from XML declarations or old maps.
+- The inherited static XML output block was removed from the SeDa mapping so
+  the explicit script-side output family is the single LED path.
 - Validate each note physically before marking it as confirmed.
 - Keep startup-warning investigation separate from input mapping and from raw
   hardware-frame validation.
