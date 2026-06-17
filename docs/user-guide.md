@@ -57,8 +57,9 @@ inherited historical behavior.
   deck, so Deck A and Deck B actions remain independent.
 - Effect behavior remains inherited and outside the immediate redesign.
 - VINYL is a global scratch toggle and secondary modifier.
-- Back and Fast Forward remain the original deck `back` and `fwd` controls
-  with normal press/release handling, regardless of VINYL state.
+- Deck A Back/Fast Forward and Deck B Fast Forward retain normal bindings.
+- Deck B Back remains assigned to `0x2d`; if the button emits no MIDI, it
+  requires hardware repair or an intentional remap to another control.
 
 ## LED semantics
 

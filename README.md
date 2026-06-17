@@ -60,8 +60,11 @@ prototype baseline.
 - VINYL remains the global scratch/jog toggle and also acts as the secondary
   modifier.
 - Hot Cue, Loop, and Sample use deck-specific action banks.
-- Back and Fast Forward use their original deck `back`/`fwd` controls
-  regardless of VINYL state.
+- Deck A Back/Fast Forward and Deck B Fast Forward use their original controls.
+- Deck B Back remains mapped to `0x2d`, but the tested unit emitted no `0x2d`
+  input during the focused hardware capture.
+- Deck volume runs through one shared handler that reproduces Mixxx's native
+  `-20 dB` to `0 dB` audio-taper law over the captured `0x00-0x7F` span.
 
 Only the VINYL LED frame is currently claimed as physically validated. Other
 implemented LED and transport behaviors remain pending the hardware gate.

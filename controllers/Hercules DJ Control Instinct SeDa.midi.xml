@@ -96,10 +96,10 @@
         <status>0xb1</status>
         <midino>0x36</midino>
         <group>[Channel1]</group>
-        <key>volume</key>
+        <key>HCInstinctSeDa.deckVolume</key>
         <description/>
         <options>
-          <normal/>
+          <script-binding/>
         </options>
       </control>
       <control>
@@ -146,10 +146,10 @@
         <status>0xb1</status>
         <midino>0x3b</midino>
         <group>[Channel2]</group>
-        <key>volume</key>
+        <key>HCInstinctSeDa.deckVolume</key>
         <description/>
         <options>
-          <normal/>
+          <script-binding/>
         </options>
       </control>
       <control>

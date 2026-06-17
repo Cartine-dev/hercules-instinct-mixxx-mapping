@@ -10,6 +10,11 @@ HCInstinctSeDa.pitchSwitches = {
     A: [0, 0],
     B: [0, 0],
 };
+// Controller-debug capture on 2026-06-14 showed both deck volume faders use a
+// full bottom-to-top raw span of 0x00-0x7F on this controller unit.
+HCInstinctSeDa.deckVolumeRawMin = 0x00;
+HCInstinctSeDa.deckVolumeRawMax = 0x7F;
+HCInstinctSeDa.deckVolumeMinDb = -20;
 // Direct raw-MIDI probing on the Hercules output port confirmed note-on on
 // channel 2 (0x91) with value 0x7F for the VINYL LED.
 HCInstinctSeDa.ledStatus = 0x91;
@@ -249,6 +254,22 @@ HCInstinctSeDa.sampleButton = function(channel, control, value, status, group) {
     if (engine.getValue("[Sampler" + sampler + "]", "track_loaded") > 0) {
         HCInstinctSeDa.triggerControl("[Sampler" + sampler + "]", "cue_gotoandplay");
     }
+};
+
+HCInstinctSeDa.deckVolumeValue = function(value) {
+    var normalized = (value - HCInstinctSeDa.deckVolumeRawMin) /
+        (HCInstinctSeDa.deckVolumeRawMax - HCInstinctSeDa.deckVolumeRawMin);
+    normalized = Math.max(0, Math.min(1, normalized));
+    if (normalized === 0) {
+        return 0;
+    }
+    var offset = Math.pow(10, HCInstinctSeDa.deckVolumeMinDb / 20);
+    var db = HCInstinctSeDa.deckVolumeMinDb * (1 - normalized);
+    return (Math.pow(10, db / 20) - offset) / (1 - offset);
+};
+
+HCInstinctSeDa.deckVolume = function(channel, control, value, status, group) {
+    engine.setValue(group, "volume", HCInstinctSeDa.deckVolumeValue(value));
 };
 
 HCInstinctSeDa.effectButton = function(channel, control, value, status, group) {

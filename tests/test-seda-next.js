@@ -41,6 +41,22 @@ global.engine = {
     scratchDisable() {},
     scratchTick() {},
 };
+global.script = {
+    absoluteLin(value, min, max, rawMin, rawMax) {
+        if (rawMax === rawMin) {
+            return min;
+        }
+        const ratio = (value - rawMin) / (rawMax - rawMin);
+        return min + ratio * (max - min);
+    },
+    absoluteLinInverse(value, min, max, rawMin, rawMax) {
+        if (rawMax === rawMin) {
+            return min;
+        }
+        const ratio = (rawMax - value) / (rawMax - rawMin);
+        return min + ratio * (max - min);
+    },
+};
 global.midi = {
     sendShortMsg(status, note, value) {
         ledWrites.push([status, note, value]);
@@ -56,10 +72,12 @@ const lastTrigger = () => writes[writes.length - 2];
 const resetWrites = () => writes.splice(0, writes.length);
 const resetLeds = () => ledWrites.splice(0, ledWrites.length);
 const assertXmlBinding = (midino, group, keyName, option) => {
-    assert(xmlSource.includes(`<midino>${midino}</midino>`));
-    assert(xmlSource.includes(`<group>${group}</group>`));
-    assert(xmlSource.includes(`<key>${keyName}</key>`));
-    assert(xmlSource.includes(`<${option}/>`));
+    const blocks = xmlSource.match(/<control>[\s\S]*?<\/control>/g);
+    const block = blocks.find(candidate => candidate.includes(`<midino>${midino}</midino>`));
+    assert(block);
+    assert(block.includes(`<group>${group}</group>`));
+    assert(block.includes(`<key>${keyName}</key>`));
+    assert(block.includes(`<${option}/>`));
 };
 
 HCInstinctSeDa.syncButton(0, 0x17, press, 0x91, "[Channel1]");
@@ -163,6 +181,39 @@ assertXmlBinding("0x13", "[Channel1]", "back", "normal");
 assertXmlBinding("0x14", "[Channel1]", "fwd", "normal");
 assertXmlBinding("0x2d", "[Channel2]", "back", "normal");
 assertXmlBinding("0x2e", "[Channel2]", "fwd", "normal");
+assertXmlBinding("0x36", "[Channel1]", "HCInstinctSeDa.deckVolume", "script-binding");
+assertXmlBinding("0x3b", "[Channel2]", "HCInstinctSeDa.deckVolume", "script-binding");
+
+const assertDeckVolume = (raw, expected) => {
+    resetWrites();
+    HCInstinctSeDa.deckVolume(0, 0x36, raw, 0xB1, "[Channel1]");
+    assert.equal(writes.slice(-1)[0][0], "[Channel1]");
+    assert.equal(writes.slice(-1)[0][1], "volume");
+    assert(Math.abs(writes.slice(-1)[0][2] - expected) < 1e-12);
+
+    resetWrites();
+    HCInstinctSeDa.deckVolume(0, 0x3B, raw, 0xB1, "[Channel2]");
+    assert.equal(writes.slice(-1)[0][0], "[Channel2]");
+    assert.equal(writes.slice(-1)[0][1], "volume");
+    assert(Math.abs(writes.slice(-1)[0][2] - expected) < 1e-12);
+};
+const curvedDeckVolume = raw => {
+    if (raw === 0) {
+        return 0;
+    }
+    const normalized = raw / 127;
+    const offset = Math.pow(10, HCInstinctSeDa.deckVolumeMinDb / 20);
+    const db = HCInstinctSeDa.deckVolumeMinDb * (1 - normalized);
+    return (Math.pow(10, db / 20) - offset) / (1 - offset);
+};
+
+assertDeckVolume(0, 0);
+assertDeckVolume(32, curvedDeckVolume(32));
+assertDeckVolume(64, curvedDeckVolume(64));
+assertDeckVolume(95, curvedDeckVolume(95));
+assertDeckVolume(127, 1);
+assert(HCInstinctSeDa.deckVolumeValue(32) < 32 / 127);
+assert(HCInstinctSeDa.deckVolumeValue(64) < 64 / 127);
 
 HCInstinctSeDa.vinylButtonHandler(0, 0x35, press);
 assert.equal(HCInstinctSeDa.scratchModeEnabled, false);

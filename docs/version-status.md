@@ -10,6 +10,7 @@
 | Hot Cue | Previous baseline observed | `VINYL off: 1-2 activate, 3-4 clear hotcues 1-2`; `VINYL on: 1-2 activate, 3-4 clear hotcues 3-4` | Physical validation |
 | Loop | Hardware manual provides conceptual target | Per-deck QSG matrix | Physical validation |
 | Sample | Existing sample playback controls are available | Four slots per deck plus slot LEDs | Physical validation |
-| Back/Fast Forward | Historical deck controls exist | Original per-deck `back`/`fwd` restored with normal press/release handling | Physical validation |
+| Back/Fast Forward | Focused capture received `0x2e` press/release but no `0x2d`; Deck B Back is the isolated hardware failure | Original bindings retained because a mapping cannot repair a button that emits no MIDI | Hardware repair or intentional alternate-button remap |
+| Deck volume | Controller-debug capture showed `0x00-0x7F` on both faders | Shared `deckVolume` handler reproduces Mixxx's native `-20 dB` to `0 dB` audio taper | Validate audible fade at 0/25/50/75/100% |
 | Effect | Existing inherited behavior | Baseline mapping retained | Global; no immediate redesign |
 | Audio routing | Mixxx manual supports two-interface setup | Configuration documented | Hercules integrated-output setup later |
