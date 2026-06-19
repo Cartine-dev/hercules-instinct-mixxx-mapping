@@ -1,8 +1,8 @@
 # Hercules DJControl Instinct SeDa mapping for Mixxx
 
 This repository preserves the historical Hercules DJControl Instinct mapping
-and publishes the current SeDa prototype baseline plus the specification for
-its next iteration.
+and publishes the current SeDa prototype baseline plus the latest redesign
+consolidation that is awaiting the next hardware gate.
 
 The status labels below are deliberate:
 
@@ -59,33 +59,38 @@ prototype baseline.
 - SYNC toggles `sync_enabled` and its LED follows the persistent deck state.
 - VINYL remains the global scratch/jog toggle and also acts as the secondary
   modifier.
-- Hot Cue, Loop, and Sample use deck-specific action banks.
+- Hot Cue without VINYL maps buttons `1-4` to `hotcue_1-4_gotoandplay`.
+- Hot Cue with VINYL maps buttons `1-4` to `hotcue_5-8_gotoandplay`.
+- Direct controller-side hotcue set/edit is intentionally removed in this
+  pass; any restore needs a separate modifier design.
+- Loop uses `1=beatloop_4_activate`, `2=reloop_toggle`,
+  `3=loop_move_1_backward`, and `4=loop_move_1_forward`.
+- Jog stays normal with no active loop, uses `loop_scale` as the finer loop-end
+  resize tool while a loop is active and VINYL is off, and keeps scratch on
+  touch when VINYL is on.
+- Sample uses deck-specific action banks.
 - Deck A Back/Fast Forward and Deck B Fast Forward use their original controls.
 - Deck B Back remains mapped to `0x2d`, but the tested unit emitted no `0x2d`
   input during the focused hardware capture.
-- Deck volume runs through one shared handler that reproduces Mixxx's native
-  `-20 dB` to `0 dB` audio-taper law over the captured `0x00-0x7F` span.
+- Deck volume runs through one shared handler that maps the captured
+  `0x00-0x7F` span linearly to Mixxx `[ChannelN],volume` `0.0-1.0` so the
+  physical throw can be validated against the on-screen slider first.
+- `HP_VOL_M/P` stays on `[Master],headGain` and is unchanged in this pass.
 
 Only the VINYL LED frame is currently claimed as physically validated. Other
 implemented LED and transport behaviors remain pending the hardware gate.
 
-## Implemented next iteration, awaiting hardware validation
+## Hardware gate still open
 
-- SYNC is a toggle of `sync_enabled`, with a persistent deck-state LED.
-- VINYL remains the global scratch toggle and acts as a secondary modifier.
-- Hot Cue, Loop, and Sample action banks operate independently per deck.
+- Hot Cue bank switching still needs the next live check: VINYL off should
+  trigger hotcues `1-4`, VINYL on should trigger hotcues `5-8`.
+- Hot Cue LEDs currently still mirror hotcues `1-4` on buttons `1-4`; whether
+  that is acceptable for the `5-8` bank remains a hardware-validation question.
+- Loop `3-4` still need a real-feel check to confirm one-beat movement is the
+  right default step.
+- Deck volume still needs the explicit `0 / 25 / 50 / 75 / 100%` live sweep to
+  confirm the early-max travel bug is gone before any taper feel retune.
 - Effect behavior remains inherited and outside the immediate redesign.
-- Hot Cue without VINYL maps buttons `1-2` to activate hotcues `1-2`, and
-  buttons `3-4` clear hotcues `1-2`.
-- Hot Cue with VINYL maps buttons `1-2` to hotcues `3-4`, and buttons `3-4`
-  clear hotcues `3-4`.
-- With VINYL off, the four Hot Cue LEDs mirror hotcues `1-2` as `1/3` and
-  `2/4`. With VINYL on, they mirror hotcues `3-4` as `1/3` and `2/4`.
-- Loop follows the hardware manual model:
-  `1=Loop In`, `2=Loop Out/Exit`, `3=Halve`, `4=Double`.
-- Sample buttons play the four slots assigned to each deck.
-- Back and Fast Forward keep their original deck-search behavior with normal
-  press/release handling.
 
 ## Installation
 

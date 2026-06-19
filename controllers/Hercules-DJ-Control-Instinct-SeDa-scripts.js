@@ -14,7 +14,7 @@ HCInstinctSeDa.pitchSwitches = {
 // full bottom-to-top raw span of 0x00-0x7F on this controller unit.
 HCInstinctSeDa.deckVolumeRawMin = 0x00;
 HCInstinctSeDa.deckVolumeRawMax = 0x7F;
-HCInstinctSeDa.deckVolumeMinDb = -20;
+HCInstinctSeDa.loopScaleStep = 0.0625;
 // Direct raw-MIDI probing on the Hercules output port confirmed note-on on
 // channel 2 (0x91) with value 0x7F for the VINYL LED.
 HCInstinctSeDa.ledStatus = 0x91;
@@ -113,7 +113,7 @@ HCInstinctSeDa.updateDeckLeds = function(group) {
     HCInstinctSeDa.sendLed(loopNotes[0], engine.getValue(group, "loop_start_position") >= 0);
     HCInstinctSeDa.sendLed(loopNotes[1], engine.getValue(group, "loop_end_position") >= 0);
     HCInstinctSeDa.sendLed(loopNotes[2], loopActive);
-    // LOOP 3/4 change length and have no persistent state; show when a loop is active.
+    // LOOP 3/4 move the active loop and have no persistent state; show when a loop is active.
     HCInstinctSeDa.sendLed(loopNotes[3], loopActive);
     HCInstinctSeDa.updateHotCueLeds(group);
     HCInstinctSeDa.updateSampleLeds(group);
@@ -121,15 +121,8 @@ HCInstinctSeDa.updateDeckLeds = function(group) {
 
 HCInstinctSeDa.updateHotCueLeds = function(group) {
     var notes = HCInstinctSeDa.ledNotes.hotCue[group];
-    var enabled = [];
     for (var i = 1; i <= 4; i++) {
-        enabled.push(engine.getValue(group, "hotcue_" + i + "_enabled") > 0);
-    }
-    var shown = HCInstinctSeDa.scratchModeEnabled ?
-        [enabled[2], enabled[3], enabled[2], enabled[3]] :
-        [enabled[0], enabled[1], enabled[0], enabled[1]];
-    for (var j = 0; j < notes.length; j++) {
-        HCInstinctSeDa.sendLed(notes[j], shown[j]);
+        HCInstinctSeDa.sendLed(notes[i - 1], engine.getValue(group, "hotcue_" + i + "_enabled") > 0);
     }
 };
 
@@ -217,12 +210,8 @@ HCInstinctSeDa.hotCueButton = function(channel, control, value, status, group) {
     }
     var base = group === "[Channel1]" ? 0x0D : 0x27;
     var button = control - base + 1;
-    var hotCue = button <= 2 ? button : button - 2;
-    var action = button <= 2 ? "activate" : "clear";
-    if (HCInstinctSeDa.scratchModeEnabled) {
-        hotCue += 2;
-    }
-    HCInstinctSeDa.triggerControl(group, "hotcue_" + hotCue + "_" + action);
+    var hotCue = HCInstinctSeDa.scratchModeEnabled ? button + 4 : button;
+    HCInstinctSeDa.triggerControl(group, "hotcue_" + hotCue + "_gotoandplay");
 };
 
 HCInstinctSeDa.loopButton = function(channel, control, value, status, group) {
@@ -232,15 +221,13 @@ HCInstinctSeDa.loopButton = function(channel, control, value, status, group) {
     var base = group === "[Channel1]" ? 0x09 : 0x23;
     var button = control - base + 1;
     if (button === 1) {
-        HCInstinctSeDa.triggerControl(group, "loop_in");
+        HCInstinctSeDa.triggerControl(group, "beatloop_4_activate");
     } else if (button === 2) {
-        var hasLoop = engine.getValue(group, "loop_start_position") >= 0 &&
-            engine.getValue(group, "loop_end_position") >= 0;
-        HCInstinctSeDa.triggerControl(group, hasLoop ? "reloop_exit" : "loop_out");
+        HCInstinctSeDa.triggerControl(group, "reloop_toggle");
     } else if (button === 3) {
-        HCInstinctSeDa.triggerControl(group, "loop_halve");
+        HCInstinctSeDa.triggerControl(group, "loop_move_1_backward");
     } else if (button === 4) {
-        HCInstinctSeDa.triggerControl(group, "loop_double");
+        HCInstinctSeDa.triggerControl(group, "loop_move_1_forward");
     }
 };
 
@@ -259,13 +246,8 @@ HCInstinctSeDa.sampleButton = function(channel, control, value, status, group) {
 HCInstinctSeDa.deckVolumeValue = function(value) {
     var normalized = (value - HCInstinctSeDa.deckVolumeRawMin) /
         (HCInstinctSeDa.deckVolumeRawMax - HCInstinctSeDa.deckVolumeRawMin);
-    normalized = Math.max(0, Math.min(1, normalized));
-    if (normalized === 0) {
-        return 0;
-    }
-    var offset = Math.pow(10, HCInstinctSeDa.deckVolumeMinDb / 20);
-    var db = HCInstinctSeDa.deckVolumeMinDb * (1 - normalized);
-    return (Math.pow(10, db / 20) - offset) / (1 - offset);
+    // Favor full UI throw over loudness feel; any taper retune is a later hardware pass.
+    return Math.max(0, Math.min(1, normalized));
 };
 
 HCInstinctSeDa.deckVolume = function(channel, control, value, status, group) {
@@ -323,10 +305,22 @@ HCInstinctSeDa.signedValue = function(value) {
     return value > 64 ? value - 128 : value;
 };
 
+HCInstinctSeDa.loopScaleValue = function(delta) {
+    var step = Math.min(Math.abs(delta), 16) * HCInstinctSeDa.loopScaleStep;
+    if (delta > 0) {
+        return 1 + step;
+    }
+    return 1 / (1 + step);
+};
+
 HCInstinctSeDa.handleWheelTurn = function(deckIndex, value, group) {
     var delta = HCInstinctSeDa.signedValue(value);
     if (HCInstinctSeDa.scratching[deckIndex]) {
         engine.scratchTick(deckIndex + 1, delta);
+        return;
+    }
+    if (!HCInstinctSeDa.scratchModeEnabled && engine.getValue(group, "loop_enabled") > 0 && delta !== 0) {
+        engine.setValue(group, "loop_scale", HCInstinctSeDa.loopScaleValue(delta));
         return;
     }
     engine.setValue(group, "jog", delta);

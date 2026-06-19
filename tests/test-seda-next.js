@@ -6,6 +6,7 @@ const vm = require("vm");
 const values = new Map();
 const writes = [];
 const ledWrites = [];
+const scratchTicks = [];
 const key = (group, control) => `${group}|${control}`;
 const scriptPath = path.join(
     __dirname,
@@ -39,7 +40,9 @@ global.engine = {
     },
     scratchEnable() {},
     scratchDisable() {},
-    scratchTick() {},
+    scratchTick(deck, delta) {
+        scratchTicks.push([deck, delta]);
+    },
 };
 global.script = {
     absoluteLin(value, min, max, rawMin, rawMax) {
@@ -71,6 +74,7 @@ const release = 0x00;
 const lastTrigger = () => writes[writes.length - 2];
 const resetWrites = () => writes.splice(0, writes.length);
 const resetLeds = () => ledWrites.splice(0, ledWrites.length);
+const resetScratchTicks = () => scratchTicks.splice(0, scratchTicks.length);
 const assertXmlBinding = (midino, group, keyName, option) => {
     const blocks = xmlSource.match(/<control>[\s\S]*?<\/control>/g);
     const block = blocks.find(candidate => candidate.includes(`<midino>${midino}</midino>`));
@@ -89,16 +93,16 @@ assert.equal(engine.getValue("[Channel1]", "sync_enabled"), 0);
 
 resetWrites();
 HCInstinctSeDa.hotCueButton(0, 0x0D, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_1_activate", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_1_gotoandplay", 1]);
 resetWrites();
 HCInstinctSeDa.hotCueButton(0, 0x0E, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_2_activate", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_2_gotoandplay", 1]);
 resetWrites();
 HCInstinctSeDa.hotCueButton(0, 0x0F, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_1_clear", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_3_gotoandplay", 1]);
 resetWrites();
 HCInstinctSeDa.hotCueButton(0, 0x10, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_2_clear", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_4_gotoandplay", 1]);
 
 values.set(key("[Channel1]", "hotcue_1_enabled"), 1);
 values.set(key("[Channel1]", "hotcue_2_enabled"), 0);
@@ -109,30 +113,30 @@ HCInstinctSeDa.updateHotCueLeds("[Channel1]");
 assert.deepEqual(ledWrites.slice(-4), [
     [0x91, 0x0D, 0x7F],
     [0x91, 0x0E, 0x00],
-    [0x91, 0x0F, 0x7F],
-    [0x91, 0x10, 0x00],
+    [0x91, 0x0F, 0x00],
+    [0x91, 0x10, 0x7F],
 ]);
 
 HCInstinctSeDa.vinylButtonHandler(0, 0x35, press);
 assert.equal(HCInstinctSeDa.scratchModeEnabled, true);
 resetWrites();
 HCInstinctSeDa.hotCueButton(0, 0x0D, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_3_activate", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_5_gotoandplay", 1]);
 resetWrites();
 HCInstinctSeDa.hotCueButton(0, 0x0E, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_4_activate", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_6_gotoandplay", 1]);
 resetWrites();
 HCInstinctSeDa.hotCueButton(0, 0x0F, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_3_clear", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_7_gotoandplay", 1]);
 resetWrites();
 HCInstinctSeDa.hotCueButton(0, 0x10, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_4_clear", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "hotcue_8_gotoandplay", 1]);
 
 resetLeds();
 HCInstinctSeDa.updateHotCueLeds("[Channel1]");
 assert.deepEqual(ledWrites.slice(-4), [
-    [0x91, 0x0D, 0x00],
-    [0x91, 0x0E, 0x7F],
+    [0x91, 0x0D, 0x7F],
+    [0x91, 0x0E, 0x00],
     [0x91, 0x0F, 0x00],
     [0x91, 0x10, 0x7F],
 ]);
@@ -141,21 +145,16 @@ values.set(key("[Channel1]", "loop_start_position"), -1);
 values.set(key("[Channel1]", "loop_end_position"), -1);
 resetWrites();
 HCInstinctSeDa.loopButton(0, 0x09, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "loop_in", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "beatloop_4_activate", 1]);
 resetWrites();
 HCInstinctSeDa.loopButton(0, 0x0A, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "loop_out", 1]);
-values.set(key("[Channel1]", "loop_start_position"), 100);
-values.set(key("[Channel1]", "loop_end_position"), 200);
-resetWrites();
-HCInstinctSeDa.loopButton(0, 0x0A, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "reloop_exit", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "reloop_toggle", 1]);
 resetWrites();
 HCInstinctSeDa.loopButton(0, 0x0B, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "loop_halve", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "loop_move_1_backward", 1]);
 resetWrites();
 HCInstinctSeDa.loopButton(0, 0x0C, press, 0x91, "[Channel1]");
-assert.deepEqual(lastTrigger(), ["[Channel1]", "loop_double", 1]);
+assert.deepEqual(lastTrigger(), ["[Channel1]", "loop_move_1_forward", 1]);
 
 values.set(key("[Sampler1]", "track_loaded"), 1);
 resetWrites();
@@ -166,6 +165,39 @@ values.set(key("[Sampler6]", "track_loaded"), 1);
 resetWrites();
 HCInstinctSeDa.sampleButton(0, 0x20, press, 0x91, "[Channel2]");
 assert.deepEqual(lastTrigger(), ["[Sampler6]", "cue_gotoandplay", 1]);
+
+HCInstinctSeDa.vinylButtonHandler(0, 0x35, press);
+assert.equal(HCInstinctSeDa.scratchModeEnabled, false);
+values.set(key("[Channel1]", "loop_enabled"), 0);
+resetWrites();
+HCInstinctSeDa.wheelTurn0(0, 0x26, 0x01, 0xB1, "[Channel1]");
+assert.deepEqual(writes.slice(-1)[0], ["[Channel1]", "jog", 1]);
+
+values.set(key("[Channel1]", "loop_enabled"), 1);
+resetWrites();
+HCInstinctSeDa.wheelTurn0(0, 0x26, 0x01, 0xB1, "[Channel1]");
+assert.deepEqual(writes.slice(-1)[0], [
+    "[Channel1]",
+    "loop_scale",
+    HCInstinctSeDa.loopScaleValue(1),
+]);
+resetWrites();
+HCInstinctSeDa.wheelTurn0(0, 0x26, 0x7F, 0xB1, "[Channel1]");
+assert.deepEqual(writes.slice(-1)[0], [
+    "[Channel1]",
+    "loop_scale",
+    HCInstinctSeDa.loopScaleValue(-1),
+]);
+
+HCInstinctSeDa.vinylButtonHandler(0, 0x35, press);
+assert.equal(HCInstinctSeDa.scratchModeEnabled, true);
+HCInstinctSeDa.wheelTouch0(0, 0x25, press, 0x91, "[Channel1]");
+resetScratchTicks();
+resetWrites();
+HCInstinctSeDa.wheelTurn0(0, 0x26, 0x02, 0xB1, "[Channel1]");
+assert.deepEqual(scratchTicks.slice(-1)[0], [1, 2]);
+assert.equal(writes.length, 0);
+HCInstinctSeDa.wheelTouch0(0, 0x25, release, 0x91, "[Channel1]");
 
 assert.equal(typeof HCInstinctSeDa.backButton, "undefined");
 assert.equal(typeof HCInstinctSeDa.forwardButton, "undefined");
@@ -197,26 +229,15 @@ const assertDeckVolume = (raw, expected) => {
     assert.equal(writes.slice(-1)[0][1], "volume");
     assert(Math.abs(writes.slice(-1)[0][2] - expected) < 1e-12);
 };
-const curvedDeckVolume = raw => {
-    if (raw === 0) {
-        return 0;
-    }
-    const normalized = raw / 127;
-    const offset = Math.pow(10, HCInstinctSeDa.deckVolumeMinDb / 20);
-    const db = HCInstinctSeDa.deckVolumeMinDb * (1 - normalized);
-    return (Math.pow(10, db / 20) - offset) / (1 - offset);
-};
+const linearDeckVolume = raw => raw / 127;
 
 assertDeckVolume(0, 0);
-assertDeckVolume(32, curvedDeckVolume(32));
-assertDeckVolume(64, curvedDeckVolume(64));
-assertDeckVolume(95, curvedDeckVolume(95));
+assertDeckVolume(32, linearDeckVolume(32));
+assertDeckVolume(64, linearDeckVolume(64));
+assertDeckVolume(95, linearDeckVolume(95));
 assertDeckVolume(127, 1);
-assert(HCInstinctSeDa.deckVolumeValue(32) < 32 / 127);
-assert(HCInstinctSeDa.deckVolumeValue(64) < 64 / 127);
-
-HCInstinctSeDa.vinylButtonHandler(0, 0x35, press);
-assert.equal(HCInstinctSeDa.scratchModeEnabled, false);
+assert(Math.abs(HCInstinctSeDa.deckVolumeValue(32) - linearDeckVolume(32)) < 1e-12);
+assert(Math.abs(HCInstinctSeDa.deckVolumeValue(64) - linearDeckVolume(64)) < 1e-12);
 resetWrites();
 HCInstinctSeDa.effectButton(0, 0x02, press, 0x91, "[Channel1]");
 assert.deepEqual(writes.slice(-1)[0], [
